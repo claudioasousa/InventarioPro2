@@ -1,0 +1,143 @@
+// Schema Prisma para Inventário Patrimonial Municipal
+// Banco de dados: PostgreSQL
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Perfil {
+  Administrador
+  Operador
+  Consulta
+}
+
+enum EstadoConservacao {
+  Otimo      @map("Ótimo")
+  Bom        @map("Bom")
+  Regular    @map("Regular")
+  Ruim       @map("Ruim")
+  Inservivel @map("Inservível")
+}
+
+model Setor {
+  id              Int            @id @default(autoincrement())
+  nome            String         @db.VarChar(100)
+  sigla           String         @unique @db.VarChar(10)
+  descricao       String?        @db.VarChar(255)
+  responsavel     String?        @db.VarChar(100)
+  emailContato    String?        @map("email_contato") @db.VarChar(100)
+  dataCriacao     DateTime       @default(now()) @map("data_criacao")
+  
+  patrimonios     Patrimonio[]
+  movimentacoesDa Movimentacao[] @relation("SetorOrigem")
+  movimentacoesPara Movimentacao[] @relation("SetorDestino")
+
+  @@map("setores")
+}
+
+model Categoria {
+  id                   Int          @id @default(autoincrement())
+  nome                 String       @unique @db.VarChar(100)
+  codigo               String       @unique @db.VarChar(10)
+  descricao            String?      @db.VarChar(255)
+  depreciacaoAnualPct  Decimal      @default(10.00) @map("depreciacao_anual_pct") @db.Decimal(5, 2)
+  
+  patrimonios          Patrimonio[]
+
+  @@map("categorias")
+}
+
+model User {
+  id              Int            @id @default(autoincrement())
+  nome            String         @db.VarChar(100)
+  email           String         @unique @db.VarChar(100)
+  passwordHash    String         @map("password_hash") @db.VarChar(255)
+  cargo           String?        @db.VarChar(100)
+  perfil          Perfil         @default(Consulta)
+  ativo           Boolean        @default(true)
+  dataCriacao     DateTime       @default(now()) @map("data_criacao")
+  dataUltimoLogin DateTime?      @map("data_ultimo_login")
+  
+  auditorias      Auditoria[]
+  movimentacoes   Movimentacao[]
+
+  @@map("users")
+}
+
+model Patrimonio {
+  id                  Int               @id @default(autoincrement())
+  numeroPatrimonial   String            @unique @map("numero_patrimonical") @db.VarChar(50)
+  tombamento          String?           @unique @db.VarChar(50)
+  descricao           String            @db.Text
+  categoriaId         Int               @map("categoria_id")
+  quantidade          Int               @default(1)
+  estadoConservacao   EstadoConservacao @map("estado_conservacao")
+  localizacaoAtual    String?           @map("localizacao_atual") @db.VarChar(150)
+  setorId             Int               @map("setor_id")
+  dataAquisicao       DateTime          @map("data_aquisicao") @db.Date
+  valorEstimado       Decimal           @map("valor_estimado") @db.Decimal(12, 2)
+  observacoes         String?           @db.Text
+  fotoUrl             String?           @map("foto_url") @db.Text
+  ativo               Boolean           @default(true)
+  dataCadastro        DateTime          @default(now()) @map("data_cadastro")
+  dataAtualizacao     DateTime          @updatedAt @map("data_atualizacao")
+
+  categoria           Categoria         @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  setor               Setor             @relation(fields: [setorId], references: [id], onDelete: Restrict)
+  movimentacoes       Movimentacao[]
+  anexos              Anexo[]
+
+  @@map("patrimonios")
+}
+
+model Movimentacao {
+  id               Int          @id @default(autoincrement())
+  patrimonioId     Int          @map("patrimonio_id")
+  setorOrigemId    Int?         @map("setor_origem_id")
+  setorDestinoId   Int          @map("setor_destino_id")
+  usuarioId        Int?         @map("usuario_id")
+  usuarioNome      String       @map("usuario_nome") @db.VarChar(100)
+  dataMovimentacao DateTime     @default(now()) @map("data_movimentacao")
+  motivo           String       @db.Text
+  observacoes      String?      @db.Text
+
+  patrimonio       Patrimonio   @relation(fields: [patrimonioId], references: [id], onDelete: Cascade)
+  setorOrigem      Setor?       @relation("SetorOrigem", fields: [setorOrigemId], references: [id], onDelete: SetNull)
+  setorDestino     Setor        @relation("SetorDestino", fields: [setorDestinoId], references: [id], onDelete: Restrict)
+  usuario          User?        @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("movimentacoes")
+}
+
+model Anexo {
+  id           Int        @id @default(autoincrement())
+  patrimonioId Int        @map("patrimonio_id")
+  nomeArquivo  String     @map("nome_arquivo") @db.VarChar(255)
+  tipoMime     String     @map("tipo_mime") @db.VarChar(100)
+  arquivoBase64 String    @map("arquivo_base64") @db.Text
+  tamanhoBytes Int        @map("tamanho_bytes")
+  dataUpload   DateTime   @default(now()) @map("data_upload")
+
+  patrimonio   Patrimonio @relation(fields: [patrimonioId], references: [id], onDelete: Cascade)
+
+  @@map("anexos")
+}
+
+model Auditoria {
+  id           Int      @id @default(autoincrement())
+  userId       Int?     @map("user_id")
+  userEmail    String   @map("user_email") @db.VarChar(100)
+  acao         String   @db.VarChar(100)
+  detalhes     String?  @db.Text
+  dataRegistro DateTime @default(now()) @map("data_registro")
+  ipOrigem     String?  @map("ip_origem") @db.VarChar(45)
+
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("auditoria")
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Inventário Patrimonial",
+  "description": "Sistema de gestão de bens móveis e controle patrimonial governamental para órgãos públicos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
