@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Building2,
   Lock,
-  UserCheck
+  UserCheck,
+  Trash2
 } from "lucide-react";
 import { User } from "../types";
 
@@ -34,12 +35,13 @@ export default function Sidebar({
   setCollapsed
 }: SidebarProps) {
   const menuItems = [
-    { id: "dashboard", label: "Painel Principal", icon: LayoutDashboard, roles: ["Administrador", "Operador", "Consulta"] },
-    { id: "patrimonios", label: "Gestão de Bens", icon: Boxes, roles: ["Administrador", "Operador", "Consulta"] },
-    { id: "transferencias", label: "Guia de Transferência", icon: ArrowLeftRight, roles: ["Administrador", "Operador", "Consulta"] },
-    { id: "relatorios", label: "Relatórios & Planilhas", icon: FileText, roles: ["Administrador", "Operador", "Consulta"] },
-    { id: "auditoria", label: "Trilha de Auditoria", icon: ShieldAlert, roles: ["Administrador", "Consulta"] },
-    { id: "configuracoes", label: "Setores & Ajustes", icon: Settings, roles: ["Administrador", "Operador"] }
+    { id: "dashboard", label: "Painel Principal", icon: LayoutDashboard, roles: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+    { id: "patrimonios", label: "Gestão de Bens", icon: Boxes, roles: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+    { id: "transferencias", label: "Guia de Transferência", icon: ArrowLeftRight, roles: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+    { id: "desfazimentos", label: "Desfazimento de Bens", icon: Trash2, roles: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+    { id: "relatorios", label: "Relatórios & Planilhas", icon: FileText, roles: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+    { id: "auditoria", label: "Trilha de Auditoria", icon: ShieldAlert, roles: ["Administrador", "Consulta", "Comissão"] },
+    { id: "configuracoes", label: "Setores & Ajustes", icon: Settings, roles: ["Administrador", "Operador", "Operador Patrimonial"] }
   ];
 
   const allowedItems = menuItems.filter(item => {

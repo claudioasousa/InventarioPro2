@@ -32,6 +32,7 @@ import TransferenciaView from "./components/TransferenciaView";
 import RelatoriosView from "./components/RelatoriosView";
 import AuditoriaView from "./components/AuditoriaView";
 import ConfiguracoesView from "./components/ConfiguracoesView";
+import DesfazimentoView from "./components/DesfazimentoView";
 
 export default function App() {
   // Estados Principais de Autenticação e Navegação
@@ -277,12 +278,13 @@ export default function App() {
 
           <div className="flex-1 space-y-3 text-left">
             {[
-              { id: "dashboard", label: "Dashboard", role: ["Administrador", "Operador", "Consulta"] },
-              { id: "patrimonios", label: "Gestão Ativos", role: ["Administrador", "Operador", "Consulta"] },
-              { id: "transferencias", label: "Transferências", role: ["Administrador", "Operador", "Consulta"] },
-              { id: "relatorios", label: "Fichas & Relatórios", role: ["Administrador", "Operador", "Consulta"] },
-              { id: "auditoria", label: "Logs de Auditoria", role: ["Administrador", "Consulta"] },
-              { id: "configuracoes", label: "Sectores & Ajustes", role: ["Administrador", "Operador"] }
+              { id: "dashboard", label: "Dashboard", role: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+              { id: "patrimonios", label: "Gestão Ativos", role: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+              { id: "transferencias", label: "Transferências", role: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+              { id: "desfazimentos", label: "Desfazimento", role: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+              { id: "relatorios", label: "Fichas & Relatórios", role: ["Administrador", "Operador", "Comissão", "Operador Patrimonial", "Consulta"] },
+              { id: "auditoria", label: "Logs de Auditoria", role: ["Administrador", "Consulta", "Comissão"] },
+              { id: "configuracoes", label: "Sectores & Ajustes", role: ["Administrador", "Operador", "Operador Patrimonial"] }
             ]
               .filter(item => item.role.includes(user.perfil))
               .map(item => (
@@ -329,6 +331,7 @@ export default function App() {
                 {activeTab === "dashboard" && "PAINEL DE AUDITORIA PATRIMONIAL"}
                 {activeTab === "patrimonios" && "PESQUISA DE BENS MÓVEIS"}
                 {activeTab === "transferencias" && "MÓDULO DE REMANEJAMENTO"}
+                {activeTab === "desfazimentos" && "DESFAZIMENTO PATRIMONIAL"}
                 {activeTab === "relatorios" && "TERMOS E BALANÇOS FISCAIS"}
                 {activeTab === "auditoria" && "LOGS DE CRIPTOGRAFIA DE DADOS"}
                 {activeTab === "configuracoes" && "REPARTIÇÕES & ATIVOS"}
@@ -491,6 +494,14 @@ export default function App() {
               sectors={sectors}
               userPerfil={user.perfil}
               onTransfer={handleTransfer}
+            />
+          )}
+
+          {activeTab === "desfazimentos" && (
+            <DesfazimentoView
+              patrimonios={patrimonios}
+              categories={categories}
+              userPerfil={user.perfil}
             />
           )}
 

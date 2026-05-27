@@ -21,7 +21,7 @@ interface User {
   email: string;
   passwordHash: string; // Senha em texto ou hash para fins demonstrativos
   cargo: string;
-  perfil: "Administrador" | "Operador" | "Consulta";
+  perfil: "Administrador" | "Operador" | "Comissão" | "Operador Patrimonial" | "Consulta";
   ativo: boolean;
   dataCriacao: string;
   dataUltimoLogin?: string;
@@ -95,6 +95,87 @@ interface Notification {
   tipo: "info" | "transfer" | "alert";
 }
 
+interface MembroComissao {
+  nome: string;
+  matricula: string;
+  cargo: string;
+  funcaoComissao: "Presidente" | "Membro" | "Suplente" | "Secretário";
+}
+
+interface Comissao {
+  id: number;
+  portaria: string;
+  descricao: string;
+  membros: MembroComissao[];
+  dataInicio: string;
+  dataFim: string;
+  ativa: boolean;
+}
+
+interface VistoriaTecnica {
+  dataVistoria: string;
+  servidorResponsavel: string;
+  parecerTecnico: string;
+  assinaturaDigital: string;
+  fotos: string[];
+  documentos: string[];
+}
+
+interface Laudo {
+  id: number;
+  dataEmissao: string;
+  responsavel: string;
+  parecerFinal: string;
+}
+
+interface BaixaPatrimonial {
+  dataBaixa: string;
+  visualDocumentoUrl?: string;
+  termoAssinado?: string;
+}
+
+interface DestinacaoFinalDetail {
+  tipo: "Leilão" | "Doação" | "Transferência" | "Reciclagem" | "Descarte ambiental";
+  data: string;
+  responsavel: string;
+  comprovantes: string[];
+  empresaReceptora: string;
+  observacoes: string;
+}
+
+interface Anexo {
+  nome: string;
+  tipo: string;
+  dataUpload: string;
+  url: string;
+}
+
+interface Desfazimento {
+  id: number;
+  patrimonioId: number;
+  numeroPatrimonial: string;
+  descricao: string;
+  localizacaoOriginal: string;
+  categoriaId: number;
+  classificacao: "Ocioso" | "Recuperável" | "Antieconômico" | "Irrecuperável" | "Obsoleto" | "Inservível";
+  estadoConservacaoOriginal: string;
+  custoEstimadoReparo: number;
+  valorResidualEstimado: number;
+  observacoesTecnicas: string;
+  parecerComissao?: string;
+  comissaoId?: number;
+  vistoria?: VistoriaTecnica;
+  laudo?: Laudo;
+  baixa?: BaixaPatrimonial;
+  destinacao?: DestinacaoFinalDetail;
+  anexos: Anexo[];
+  etapaAtual: number; // 1 a 7
+  status: "Em análise" | "Aguardando vistoria" | "Aguardando aprovação" | "Aprovado" | "Baixado" | "Finalizado";
+  usuarioCriador: string;
+  dataCriacao: string;
+  dataUltimaMovimentacao: string;
+}
+
 interface DatabaseStructure {
   users: User[];
   setores: Setor[];
@@ -103,6 +184,8 @@ interface DatabaseStructure {
   movimentacoes: Movimentacao[];
   auditoria: Auditoria[];
   notifications: Notification[];
+  comissoes: Comissao[];
+  desfazimentos: Desfazimento[];
 }
 
 // Inicializador de Banco de Dados com Dados de Alta Fidelidade Governamental
@@ -364,6 +447,46 @@ function getInitialDB(): DatabaseStructure {
         lida: false,
         tipo: "alert"
       }
+    ],
+    comissoes: [
+      {
+        id: 1,
+        portaria: "PORTARIA Nº 045/DAP/2026",
+        descricao: "Comissão Permanente de Avaliação e Desfazimento de Bens Móveis Inservíveis - Setor Administrativo Geral",
+        membros: [
+          { nome: "Flávio Roberto Costa", matricula: "349.910-2", cargo: "Auditor de Controle Interno", funcaoComissao: "Presidente" },
+          { nome: "Aline Mendes Santos", matricula: "128.450-4", cargo: "Técnico de Almoxarifado", funcaoComissao: "Membro" },
+          { nome: "Tânia Maria Pereira", matricula: "556.129-8", cargo: "Analista de TI", funcaoComissao: "Membro" }
+        ],
+        dataInicio: "2026-01-10",
+        dataFim: "2026-12-31",
+        ativa: true
+      }
+    ],
+    desfazimentos: [
+      {
+        id: 1,
+        patrimonioId: 8,
+        numeroPatrimonial: "PM2026-0008",
+        descricao: "Projetor Multimídia Epson PowerLite 3600 Lumens WXGA",
+        localizacaoOriginal: "Depósito de Bens Inservíveis - Setor de Almoxarifado",
+        categoriaId: 1,
+        classificacao: "Inservível",
+        estadoConservacaoOriginal: "Inservível",
+        custoEstimadoReparo: 2450.0,
+        valorResidualEstimado: 200.0,
+        observacoesTecnicas: "Placa lógica queimada por surto de energia. O conserto equivale a 80% do valor de um projetor novo equivalente.",
+        parecerComissao: "Comissão sugere baixa e alienação via doação para fins de reciclagem educacional de componentes eletrônicos ou sucateamento oficial.",
+        comissaoId: 1,
+        etapaAtual: 3,
+        status: "Aguardando vistoria",
+        usuarioCriador: "admin@patrimonio.gov.br",
+        dataCriacao: "2026-05-10T14:30:00Z",
+        dataUltimaMovimentacao: "2026-05-20T10:00:00Z",
+        anexos: [
+          { nome: "FichaTecnica_PM2026_0008.pdf", tipo: "application/pdf", dataUpload: "2026-05-10T14:31:00Z", url: "" }
+        ]
+      }
     ]
   };
 }
@@ -377,7 +500,14 @@ function readDB(): DatabaseStructure {
   }
   try {
     const content = fs.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    if (!parsed.comissoes) {
+      parsed.comissoes = getInitialDB().comissoes;
+    }
+    if (!parsed.desfazimentos) {
+      parsed.desfazimentos = getInitialDB().desfazimentos;
+    }
+    return parsed;
   } catch (error) {
     console.error("Falha ao ler banco JSON. Recriando inicial...", error);
     const initial = getInitialDB();
@@ -426,7 +556,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 // Middleware de Controle de Acesso por Perfil
-function requireRole(perfisPermitidos: ("Administrador" | "Operador" | "Consulta")[]) {
+function requireRole(perfisPermitidos: ("Administrador" | "Operador" | "Comissão" | "Operador Patrimonial" | "Consulta")[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = (req as any).user as User;
     if (!user) return res.status(401).json({ message: "Inicie sessão para continuar." });
@@ -515,6 +645,131 @@ app.post("/api/auth/recovery", (req: Request, res: Response) => {
   res.json({
     message: "Uma notificação de redefinição de credencial foi disparada para " + email + ". Verifique sua caixa de entrada institucional."
   });
+});
+
+// ==================== ROTAS DE USUÁRIOS (GERENCIAMENTO ADM) ====================
+
+app.get("/api/users", requireAuth, requireRole(["Administrador"]), (req: Request, res: Response) => {
+  const db = readDB();
+  const usersList = db.users.map(u => ({
+    id: u.id,
+    nome: u.nome,
+    email: u.email,
+    cargo: u.cargo,
+    perfil: u.perfil,
+    ativo: u.ativo,
+    dataCriacao: u.dataCriacao,
+    dataUltimoLogin: u.dataUltimoLogin,
+    passwordHash: u.passwordHash
+  }));
+  res.json(usersList);
+});
+
+app.post("/api/users", requireAuth, requireRole(["Administrador"]), (req: Request, res: Response) => {
+  const { nome, email, password, cargo, perfil, ativo } = req.body;
+  if (!nome || !email || !password || !cargo || !perfil) {
+    return res.status(400).json({ message: "Preencha todos os campos obrigatórios para o usuário." });
+  }
+
+  const db = readDB();
+  if (db.users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+    return res.status(400).json({ message: "E-mail de usuário já cadastrado no sistema municipal." });
+  }
+
+  const novoUsuario: User = {
+    id: db.users.length > 0 ? Math.max(...db.users.map(u => u.id)) + 1 : 1,
+    nome,
+    email,
+    passwordHash: password,
+    cargo,
+    perfil,
+    ativo: ativo !== undefined ? Boolean(ativo) : true,
+    dataCriacao: new Date().toISOString()
+  };
+
+  db.users.push(novoUsuario);
+  writeDB(db);
+
+  registrarAuditoria((req as any).user.email, "CRIAR_USUARIO", `Cadastrou usuário ${nome} como perfil ${perfil}`);
+  res.status(201).json({
+    id: novoUsuario.id,
+    nome: novoUsuario.nome,
+    email: novoUsuario.email,
+    cargo: novoUsuario.cargo,
+    perfil: novoUsuario.perfil,
+    ativo: novoUsuario.ativo,
+    dataCriacao: novoUsuario.dataCriacao
+  });
+});
+
+app.put("/api/users/:id", requireAuth, requireRole(["Administrador"]), (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const { nome, email, password, cargo, perfil, ativo } = req.body;
+
+  const db = readDB();
+  const idx = db.users.findIndex(u => u.id === id);
+  if (idx === -1) {
+    return res.status(404).json({ message: "Usuário não encontrado." });
+  }
+
+  const uOriginal = db.users[idx];
+
+  if (email && email.toLowerCase() !== uOriginal.email.toLowerCase()) {
+    if (db.users.some(u => u.id !== id && u.email.toLowerCase() === email.toLowerCase())) {
+      return res.status(400).json({ message: "Este e-mail já está sendo utilizado por outro usuário." });
+    }
+  }
+
+  if (id === (req as any).user.id && ativo === false) {
+    return res.status(400).json({ message: "Por questões de segurança, você não pode desativar sua própria conta de administrador." });
+  }
+
+  if (id === (req as any).user.id && perfil && perfil !== "Administrador") {
+    return res.status(400).json({ message: "Você não pode mudar seu próprio perfil de administrador." });
+  }
+
+  const usuarioAtualizado: User = {
+    ...uOriginal,
+    nome: nome || uOriginal.nome,
+    email: email || uOriginal.email,
+    passwordHash: password !== undefined ? password : uOriginal.passwordHash,
+    cargo: cargo || uOriginal.cargo,
+    perfil: perfil || uOriginal.perfil,
+    ativo: ativo !== undefined ? Boolean(ativo) : uOriginal.ativo
+  };
+
+  db.users[idx] = usuarioAtualizado;
+  writeDB(db);
+
+  registrarAuditoria((req as any).user.email, "ATUALIZAR_USUARIO", `Atualizou conta id ${id} - usuário ${usuarioAtualizado.nome}`);
+  res.json({
+    id: usuarioAtualizado.id,
+    nome: usuarioAtualizado.nome,
+    email: usuarioAtualizado.email,
+    cargo: usuarioAtualizado.cargo,
+    perfil: usuarioAtualizado.perfil,
+    ativo: usuarioAtualizado.ativo,
+    dataCriacao: usuarioAtualizado.dataCriacao
+  });
+});
+
+app.delete("/api/users/:id", requireAuth, requireRole(["Administrador"]), (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (id === (req as any).user.id) {
+    return res.status(400).json({ message: "Operação ilegal. Você não pode deletar si próprio." });
+  }
+
+  const db = readDB();
+  const uObj = db.users.find(u => u.id === id);
+  if (!uObj) {
+    return res.status(404).json({ message: "Usuário não localizado." });
+  }
+
+  db.users = db.users.filter(u => u.id !== id);
+  writeDB(db);
+
+  registrarAuditoria((req as any).user.email, "EXCLUIR_USUARIO", `Deletou o usuário ${uObj.nome} (${uObj.email})`);
+  res.json({ message: `Usuário ${uObj.nome} removido do servidor com sucesso.` });
 });
 
 // ==================== ROTAS DE SECTORS (SETORES) ====================
@@ -1020,6 +1275,280 @@ app.get("/api/dashboard/stats", requireAuth, (req: Request, res: Response) => {
     porCategoria,
     ultimasMovimentacoes
   });
+});
+
+// ==================== ROTAS DE COMISSÃO DE AVALIAÇÃO ====================
+
+app.get("/api/comissoes", requireAuth, (req: Request, res: Response) => {
+  const db = readDB();
+  res.json(db.comissoes || []);
+});
+
+app.post("/api/comissoes", requireAuth, requireRole(["Administrador", "Operador", "Comissão", "Operador Patrimonial"]), (req: Request, res: Response) => {
+  const db = readDB();
+  const comissaoData = req.body;
+
+  if (!comissaoData.portaria || !comissaoData.membros || !Array.isArray(comissaoData.membros)) {
+    return res.status(400).json({ message: "Portaria e lista de membros são obrigatórios." });
+  }
+
+  const novaComissao: Comissao = {
+    id: db.comissoes && db.comissoes.length > 0 ? Math.max(...db.comissoes.map(c => c.id)) + 1 : 1,
+    portaria: comissaoData.portaria.toUpperCase(),
+    descricao: comissaoData.descricao || "",
+    membros: comissaoData.membros,
+    dataInicio: comissaoData.dataInicio || new Date().toISOString().slice(0, 10),
+    dataFim: comissaoData.dataFim || "",
+    ativa: comissaoData.ativa !== undefined ? comissaoData.ativa : true
+  };
+
+  if (!db.comissoes) db.comissoes = [];
+  db.comissoes.push(novaComissao);
+  writeDB(db);
+
+  registrarAuditoria(
+    (req as any).user.email,
+    "CRIAR_COMISSAO",
+    `Criou comissão avaliadora sob portaria ${novaComissao.portaria} com ${novaComissao.membros.length} membros.`
+  );
+
+  res.status(201).json(novaComissao);
+});
+
+app.put("/api/comissoes/:id", requireAuth, requireRole(["Administrador", "Comissão", "Operador", "Operador Patrimonial"]), (req: Request, res: Response) => {
+  const db = readDB();
+  const id = Number(req.params.id);
+  const updateData = req.body;
+
+  if (!db.comissoes) db.comissoes = [];
+  const comIndex = db.comissoes.findIndex(c => c.id === id);
+  if (comIndex === -1) {
+    return res.status(404).json({ message: "Comissão não localizada no município." });
+  }
+
+  db.comissoes[comIndex] = {
+    ...db.comissoes[comIndex],
+    portaria: updateData.portaria ? updateData.portaria.toUpperCase() : db.comissoes[comIndex].portaria,
+    descricao: updateData.descricao !== undefined ? updateData.descricao : db.comissoes[comIndex].descricao,
+    membros: updateData.membros !== undefined ? updateData.membros : db.comissoes[comIndex].membros,
+    dataInicio: updateData.dataInicio !== undefined ? updateData.dataInicio : db.comissoes[comIndex].dataInicio,
+    dataFim: updateData.dataFim !== undefined ? updateData.dataFim : db.comissoes[comIndex].dataFim,
+    ativa: updateData.ativa !== undefined ? updateData.ativa : db.comissoes[comIndex].ativa
+  };
+
+  writeDB(db);
+
+  registrarAuditoria(
+    (req as any).user.email,
+    "ATUALIZAR_COMISSAO",
+    `Atualizou termos da portaria municipal ID #${id}`
+  );
+
+  res.json(db.comissoes[comIndex]);
+});
+
+app.delete("/api/comissoes/:id", requireAuth, requireRole(["Administrador"]), (req: Request, res: Response) => {
+  const db = readDB();
+  const id = Number(req.params.id);
+
+  if (!db.comissoes) db.comissoes = [];
+  const comissao = db.comissoes.find(c => c.id === id);
+  if (!comissao) {
+    return res.status(404).json({ message: "Comissão não identificada." });
+  }
+
+  db.comissoes = db.comissoes.filter(c => c.id !== id);
+  writeDB(db);
+
+  registrarAuditoria(
+    (req as any).user.email,
+    "REMOVER_COMISSAO",
+    `Removeu portaria avaliativa e comissão ${comissao.portaria}`
+  );
+
+  res.json({ message: "Comissão removida e arquivada com sucesso." });
+});
+
+// ==================== ROTAS DE DESFAZIMENTO PATRIMONIAL ====================
+
+app.get("/api/desfazimentos", requireAuth, (req: Request, res: Response) => {
+  const db = readDB();
+  res.json(db.desfazimentos || []);
+});
+
+app.post("/api/desfazimentos", requireAuth, requireRole(["Administrador", "Operador", "Comissão", "Operador Patrimonial"]), (req: Request, res: Response) => {
+  const db = readDB();
+  const { patrimonioId, classificacao, observacoesTecnicas, custoEstimadoReparo, valorResidualEstimado, comissaoId } = req.body;
+
+  if (!patrimonioId || !classificacao) {
+    return res.status(400).json({ message: "Selecione o bem correspondente e a classificação de desfazimento patrimonial." });
+  }
+
+  const patrimonio = db.patrimonios.find(p => p.id === Number(patrimonioId));
+  if (!patrimonio) {
+    return res.status(404).json({ message: "Item patrimonial não localizado no acervo institucional." });
+  }
+
+  // Verifica se já houver processo em andamento para o mesmo bem
+  if (!db.desfazimentos) db.desfazimentos = [];
+  const processoExistente = db.desfazimentos.find(d => d.patrimonioId === patrimonio.id && d.status !== "Finalizado" && d.status !== "Baixado");
+  if (processoExistente) {
+    return res.status(400).json({ message: `Já existe um processo de desfazimento ativo para o bem '${patrimonio.numeroPatrimonial}' no status '${processoExistente.status}'.` });
+  }
+
+  const novoDesfazimento: Desfazimento = {
+    id: db.desfazimentos.length > 0 ? Math.max(...db.desfazimentos.map(d => d.id)) + 1 : 1,
+    patrimonioId: patrimonio.id,
+    numeroPatrimonial: patrimonio.numeroPatrimonial,
+    descricao: patrimonio.descricao,
+    localizacaoOriginal: patrimonio.localizacaoAtual,
+    categoriaId: patrimonio.categoriaId,
+    classificacao,
+    estadoConservacaoOriginal: patrimonio.estadoConservacao,
+    custoEstimadoReparo: Number(custoEstimadoReparo) || 0,
+    valorResidualEstimado: Number(valorResidualEstimado) || 0,
+    observacoesTecnicas: observacoesTecnicas || "",
+    comissaoId: comissaoId ? Number(comissaoId) : undefined,
+    etapaAtual: 1, // Identificação
+    status: "Em análise",
+    usuarioCriador: (req as any).user.email,
+    dataCriacao: new Date().toISOString(),
+    dataUltimaMovimentacao: new Date().toISOString(),
+    anexos: []
+  };
+
+  db.desfazimentos.push(novoDesfazimento);
+  writeDB(db);
+
+  registrarAuditoria(
+    (req as any).user.email,
+    "INICIAR_DESFAZIMENTO",
+    `Iniciou processo administrativo de desfazimento do bem ${patrimonio.numeroPatrimonial} - Classificação: ${classificacao}`
+  );
+
+  res.status(201).json(novoDesfazimento);
+});
+
+app.put("/api/desfazimentos/:id", requireAuth, requireRole(["Administrador", "Comissão", "Operador", "Operador Patrimonial"]), (req: Request, res: Response) => {
+  const db = readDB();
+  const id = Number(req.params.id);
+  const payload = req.body;
+
+  if (!db.desfazimentos) db.desfazimentos = [];
+  const processIndex = db.desfazimentos.findIndex(d => d.id === id);
+  if (processIndex === -1) {
+    return res.status(404).json({ message: "Processo de desfazimento não localizado." });
+  }
+
+  const processo = db.desfazimentos[processIndex];
+
+  // Mescla actualização
+  const updatedProcesso: Desfazimento = {
+    ...processo,
+    classificacao: payload.classificacao !== undefined ? payload.classificacao : processo.classificacao,
+    custoEstimadoReparo: payload.custoEstimadoReparo !== undefined ? Number(payload.custoEstimadoReparo) : processo.custoEstimadoReparo,
+    valorResidualEstimado: payload.valorResidualEstimado !== undefined ? Number(payload.valorResidualEstimado) : processo.valorResidualEstimado,
+    observacoesTecnicas: payload.observacoesTecnicas !== undefined ? payload.observacoesTecnicas : processo.observacoesTecnicas,
+    parecerComissao: payload.parecerComissao !== undefined ? payload.parecerComissao : processo.parecerComissao,
+    comissaoId: payload.comissaoId !== undefined ? (payload.comissaoId ? Number(payload.comissaoId) : undefined) : processo.comissaoId,
+    etapaAtual: payload.etapaAtual !== undefined ? Number(payload.etapaAtual) : processo.etapaAtual,
+    status: payload.status !== undefined ? payload.status : processo.status,
+    vistoria: payload.vistoria !== undefined ? payload.vistoria : processo.vistoria,
+    laudo: payload.laudo !== undefined ? payload.laudo : processo.laudo,
+    baixa: payload.baixa !== undefined ? payload.baixa : processo.baixa,
+    destinacao: payload.destinacao !== undefined ? payload.destinacao : processo.destinacao,
+    anexos: payload.anexos !== undefined ? payload.anexos : processo.anexos,
+    dataUltimaMovimentacao: new Date().toISOString()
+  };
+
+  // Lógica de Integração com Patrimônio se o status for mudado para "Baixado" ou "Finalizado"
+  const concluindoBaixa = (payload.status === "Baixado" || payload.status === "Finalizado") && 
+                           (processo.status !== "Baixado" && processo.status !== "Finalizado");
+
+  if (concluindoBaixa) {
+    const patrimonioIndex = db.patrimonios.findIndex(p => p.id === processo.patrimonioId);
+    if (patrimonioIndex !== -1) {
+      const pOld = db.patrimonios[patrimonioIndex];
+      
+      // Atualiza estado de conservação e inativa o bem
+      db.patrimonios[patrimonioIndex] = {
+        ...pOld,
+        ativo: false,
+        estadoConservacao: "Inservível",
+        observacoes: `${pOld.observacoes || ""}\n[BAIXADO] Objeto desincorporado através de processo de descarregamento de patrimônio inservível. Destinação: ${payload.destinacao?.tipo || "Descarte"}.`,
+        dataAtualizacao: new Date().toISOString()
+      };
+
+      // Registra uma Movimentação automática para fins de transparência do Almoxarifado
+      const novaMovimentacao: Movimentacao = {
+        id: db.movimentacoes.length > 0 ? Math.max(...db.movimentacoes.map(m => m.id)) + 1 : 1,
+        patrimonioId: pOld.id,
+        setorOrigemId: pOld.setorId,
+        setorDestinoId: pOld.setorId, // Permanece no mesmo, marcado como baixado
+        usuarioId: (req as any).user.id || 1,
+        usuarioNome: (req as any).user.nome || "Sistema Municipal",
+        dataMovimentacao: new Date().toISOString(),
+        motivo: `BAIXA PATRIMONIAL DEFINITIVA - Processo desfazimento #${id}.`,
+        observacoes: `Bem desincorporado sob portaria de avaliação. Destinação adotada: ${payload.destinacao?.tipo || "Não especificado"}.`
+      };
+      
+      db.movimentacoes.push(novaMovimentacao);
+
+      // Envia notificação global ao sistema
+      db.notifications.unshift({
+        id: db.notifications.length > 0 ? Math.max(...db.notifications.map(n => n.id)) + 1 : 1,
+        titulo: `Baixa Patrimonial Efetuada`,
+        mensagem: `Bem ${pOld.numeroPatrimonial} (${pOld.descricao}) desincorporado. Destinação: ${payload.destinacao?.tipo || "Doação/Descarte"}.`,
+        data: new Date().toISOString(),
+        lida: false,
+        tipo: "alert"
+      });
+
+      registrarAuditoria(
+        (req as any).user.email,
+        "BAIXA_INTEGRADA_DESFAZIMENTO",
+        `Concluiu desfazimento #${id}. O bem ${pOld.numeroPatrimonial} foi inativado de forma irrevogável no balanço do município.`
+      );
+    }
+  }
+
+  db.desfazimentos[processIndex] = updatedProcesso;
+  writeDB(db);
+
+  registrarAuditoria(
+    (req as any).user.email,
+    "ATUALIZAR_DESFAZIMENTO",
+    `Progrediu processo de desfazimento ID #${id} para etapa ${updatedProcesso.etapaAtual} (${updatedProcesso.status})`
+  );
+
+  res.json(updatedProcesso);
+});
+
+app.delete("/api/desfazimentos/:id", requireAuth, requireRole(["Administrador"]), (req: Request, res: Response) => {
+  const db = readDB();
+  const id = Number(req.params.id);
+
+  if (!db.desfazimentos) db.desfazimentos = [];
+  const desfazimento = db.desfazimentos.find(d => d.id === id);
+  if (!desfazimento) {
+    return res.status(404).json({ message: "Processo de desfazimento não identificado no acervo." });
+  }
+
+  // Se o processo já houver concluído a baixa, por segurança governamental, não permitimos apagar
+  if (desfazimento.status === "Baixado" || desfazimento.status === "Finalizado") {
+    return res.status(400).json({ message: "Desfazimentos concluídos e averbados em cartório municipal de patrimônio não podem ser excluídos." });
+  }
+
+  db.desfazimentos = db.desfazimentos.filter(d => d.id !== id);
+  writeDB(db);
+
+  registrarAuditoria(
+    (req as any).user.email,
+    "REMOVER_DESFAZIMENTO",
+    `Cancelou processo de desfazimento ID #${id} referente ao bem ${desfazimento.numeroPatrimonial}`
+  );
+
+  res.json({ message: "Processo de desfazimento excluído com êxito." });
 });
 
 // Tratamento Global de Erros no Backend

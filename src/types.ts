@@ -3,9 +3,10 @@ export interface User {
   nome: string;
   email: string;
   cargo: string;
-  perfil: "Administrador" | "Operador" | "Consulta";
+  perfil: "Administrador" | "Operador" | "Comissão" | "Operador Patrimonial" | "Consulta";
   ativo: boolean;
   dataUltimoLogin?: string;
+  passwordHash?: string;
 }
 
 export interface Sector {
@@ -112,3 +113,85 @@ export interface DashboardStats {
     motivo: string;
   }[];
 }
+
+export interface MembroComissao {
+  nome: string;
+  matricula: string;
+  cargo: string;
+  funcaoComissao: "Presidente" | "Membro" | "Suplente" | "Secretário";
+}
+
+export interface Comissao {
+  id: number;
+  portaria: string;
+  descricao: string;
+  membros: MembroComissao[];
+  dataInicio: string;
+  dataFim: string;
+  ativa: boolean;
+}
+
+export interface VistoriaTecnica {
+  dataVistoria: string;
+  servidorResponsavel: string;
+  parecerTecnico: string;
+  assinaturaDigital: string;
+  fotos: string[];
+  documentos: string[];
+}
+
+export interface Laudo {
+  id: number;
+  dataEmissao: string;
+  responsavel: string;
+  parecerFinal: string;
+}
+
+export interface BaixaPatrimonial {
+  dataBaixa: string;
+  visualDocumentoUrl?: string;
+  termoAssinado?: string;
+}
+
+export interface DestinacaoFinalDetail {
+  tipo: "Leilão" | "Doação" | "Transferência" | "Reciclagem" | "Descarte ambiental";
+  data: string;
+  responsavel: string;
+  comprovantes: string[];
+  empresaReceptora: string;
+  observacoes: string;
+}
+
+export interface Anexo {
+  nome: string;
+  tipo: string;
+  dataUpload: string;
+  url: string;
+}
+
+export interface Desfazimento {
+  id: number;
+  patrimonioId: number;
+  numeroPatrimonial: string;
+  descricao: string;
+  localizacaoOriginal: string;
+  categoriaId: number;
+  classificacao: "Ocioso" | "Recuperável" | "Antieconômico" | "Irrecuperável" | "Obsoleto" | "Inservível";
+  estadoConservacaoOriginal: string;
+  custoEstimadoReparo: number;
+  valorResidualEstimado: number;
+  observacoesTecnicas: string;
+  parecerComissao?: string;
+  comissaoId?: number;
+  vistoria?: VistoriaTecnica;
+  laudo?: Laudo;
+  baixa?: BaixaPatrimonial;
+  destinacao?: DestinacaoFinalDetail;
+  anexos: Anexo[];
+  etapaAtual: number;
+  status: "Em análise" | "Aguardando vistoria" | "Aguardando aprovação" | "Aprovado" | "Baixado" | "Finalizado";
+  usuarioCriador: string;
+  dataCriacao: string;
+  dataUltimaMovimentacao: string;
+}
+

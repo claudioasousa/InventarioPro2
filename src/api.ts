@@ -6,7 +6,9 @@ import {
   Movimentacao,
   Auditoria,
   AppNotification,
-  DashboardStats
+  DashboardStats,
+  Comissao,
+  Desfazimento
 } from "./types";
 
 const API_BASE = "/api";
@@ -220,6 +222,40 @@ export const ApiClient = {
     });
     return handleResponse(res);
   },
+  
+  // Usuários (Gerenciamento)
+  async getUsers(): Promise<User[]> {
+    const res = await fetch(`${API_BASE}/users`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async createUser(userData: Partial<User> & { password?: string }): Promise<User> {
+    const res = await fetch(`${API_BASE}/users`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return handleResponse(res);
+  },
+
+  async updateUser(id: number, userData: Partial<User> & { password?: string }): Promise<User> {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(userData)
+    });
+    return handleResponse(res);
+  },
+
+  async deleteUser(id: number): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
+      method: "DELETE",
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
 
   // Importar planilha Excel (simulada)
   async importPlanilha(itens: any[]): Promise<{ message: string; importados: number; duplicados: number }> {
@@ -227,6 +263,74 @@ export const ApiClient = {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({ itens })
+    });
+    return handleResponse(res);
+  },
+
+  // Comissão de Avaliação
+  async getComissoes(): Promise<Comissao[]> {
+    const res = await fetch(`${API_BASE}/comissoes`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async createComissao(data: Partial<Comissao>): Promise<Comissao> {
+    const res = await fetch(`${API_BASE}/comissoes`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  async updateComissao(id: number, data: Partial<Comissao>): Promise<Comissao> {
+    const res = await fetch(`${API_BASE}/comissoes/${id}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  async deleteComissao(id: number): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/comissoes/${id}`, {
+      method: "DELETE",
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  // Desfazimento Patrimonial
+  async getDesfazimentos(): Promise<Desfazimento[]> {
+    const res = await fetch(`${API_BASE}/desfazimentos`, {
+      headers: getHeaders()
+    });
+    return handleResponse(res);
+  },
+
+  async createDesfazimento(data: Partial<Desfazimento>): Promise<Desfazimento> {
+    const res = await fetch(`${API_BASE}/desfazimentos`, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  async updateDesfazimento(id: number, data: Partial<Desfazimento>): Promise<Desfazimento> {
+    const res = await fetch(`${API_BASE}/desfazimentos/${id}`, {
+      method: "PUT",
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(res);
+  },
+
+  async deleteDesfazimento(id: number): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/desfazimentos/${id}`, {
+      method: "DELETE",
+      headers: getHeaders()
     });
     return handleResponse(res);
   }
